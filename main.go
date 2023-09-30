@@ -38,48 +38,145 @@ func main() {
 	// if err != nil {
 	// 	log.Println("couldn't ping the database:", err)
 	// }
-	err = createPhoneNumbersTable(db)
-	if err != nil {
-		log.Println("couldn't create phone numbers table:", err)
-	}
-	_, err = insertPhone(db, "1234567890")
-	if err != nil {
-		log.Println("unable to insert phone numberL", err)
-	}
-	_, err = insertPhone(db, "123 456 7891")
-	if err != nil {
-		log.Println("unable to insert phone numberL", err)
-	}
-	_, err = insertPhone(db, "(123) 456 7892")
-	if err != nil {
-		log.Println("unable to insert phone numberL", err)
-	}
-	_, err = insertPhone(db, "(123) 456-7893")
-	if err != nil {
-		log.Println("unable to insert phone numberL", err)
-	}
-	_, err = insertPhone(db, "123-456-7894")
-	if err != nil {
-		log.Println("unable to insert phone numberL", err)
-	}
-	_, err = insertPhone(db, "123-456-7890")
-	if err != nil {
-		log.Println("unable to insert phone numberL", err)
-	}
-	_, err = insertPhone(db, "1234567892")
-	if err != nil {
-		log.Println("unable to insert phone numberL", err)
-	}
-	_, err = insertPhone(db, "(123)456-7892")
-	if err != nil {
-		log.Println("unable to insert phone numberL", err)
-	}
-
-	// id, err := insertPhone(db, "1234567890")
+	// err = createPhoneNumbersTable(db)
+	// if err != nil {
+	// 	log.Println("couldn't create phone numbers table:", err)
+	// }
+	// _, err = insertPhone(db, "1234567890")
 	// if err != nil {
 	// 	log.Println("unable to insert phone numberL", err)
 	// }
-	// log.Println("created phone number record:", id)
+	// _, err = insertPhone(db, "123 456 7891")
+	// if err != nil {
+	// 	log.Println("unable to insert phone numberL", err)
+	// }
+	// _, err = insertPhone(db, "(123) 456 7892")
+	// if err != nil {
+	// 	log.Println("unable to insert phone numberL", err)
+	// }
+	// id, err := insertPhone(db, "(123) 456-7893")
+	// if err != nil {
+	// 	log.Println("unable to insert phone numberL", err)
+	// }
+	// phone, err := getPhone(db, id)
+	// if err != nil {
+	// 	log.Println(err)
+	// }
+	// log.Println(phone)
+	// _, err = insertPhone(db, "123-456-7894")
+	// if err != nil {
+	// 	log.Println("unable to insert phone numberL", err)
+	// }
+	// _, err = insertPhone(db, "123-456-7890")
+	// if err != nil {
+	// 	log.Println("unable to insert phone numberL", err)
+	// }
+	// _, err = insertPhone(db, "1234567892")
+	// if err != nil {
+	// 	log.Println("unable to insert phone numberL", err)
+	// }
+	// _, err = insertPhone(db, "(123)456-7892")
+	// if err != nil {
+	// 	log.Println("unable to insert phone numberL", err)
+	// }
+
+	// // id, err := insertPhone(db, "1234567890")
+	// // if err != nil {
+	// // 	log.Println("unable to insert phone numberL", err)
+	// // }
+	// // log.Println("created phone number record:", id)
+	phones, err := allPhones(db)
+	if err != nil {
+		log.Println(err)
+	}
+	for _, p := range phones {
+		fmt.Printf("working on... %+v\n", p)
+		number := normalize(p.value)
+		if number != p.value {
+			fmt.Println("Updating phone number...", number)
+			existing, err := findPhone(db, number)
+			if err != nil {
+				log.Fatal(err)
+			}
+			if existing != nil {
+				// delete numberr
+				err := deletePhone(db, p.id)
+				if err != nil {
+					log.Fatal("could not delete phone number:", err)
+				}
+			} else {
+				///update
+				p.value = number
+				err := updatePhone(db, p)
+				if err != nil {
+					log.Fatal("could not update phone number:", err)
+				}
+			}
+		} else {
+			fmt.Println("No changes required")
+		}
+	}
+}
+
+func deletePhone(db *sql.DB, id int) error {
+	stmt := `DELETE FROM phone_numbers WHERE id=$1`
+	_, err := db.Exec(stmt, id)
+	return err
+}
+
+func getPhone(db *sql.DB, id int) (string, error) {
+	var phone string
+	err := db.QueryRow("SELECT value FROM phone_numbers WHERE id=$1", id).Scan(&phone)
+	if err != nil {
+		log.Println("unable to get phone number:", err)
+		return "", err
+	}
+	return phone, nil
+}
+
+func updatePhone(db *sql.DB, p phone) error {
+	stmt := `UPDATE phone_numbers SET value = $2 WHERE id=$1`
+	_, err := db.Exec(stmt, p.id, p.value)
+	return err
+}
+
+func findPhone(db *sql.DB, number string) (*phone, error) {
+	var p phone
+	row := db.QueryRow("SELECT id, value FROM phone_numbers WHERE value=$1", number)
+	err := row.Scan(&p.id, &p.value)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		} else {
+			return nil, err
+		}
+	}
+	return &p, nil
+}
+
+type phone struct {
+	id    int
+	value string
+}
+
+func allPhones(db *sql.DB) ([]phone, error) {
+	rows, err := db.Query("SELECT id, value FROM phone_numbers")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var ret []phone
+	for rows.Next() {
+		var p phone
+		if err := rows.Scan(&p.id, &p.value); err != nil {
+			return nil, err
+		}
+		ret = append(ret, p)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return ret, nil
 }
 
 func insertPhone(db *sql.DB, phone string) (int, error) {
@@ -104,7 +201,7 @@ func createPhoneNumbersTable(db *sql.DB) error {
 }
 
 func resetDB(db *sql.DB, name string) error {
-	_, err := db.Exec("DROP DATABASE IF EXISTS " + name)
+	_, err := db.Exec("DROP DATABASE IF EXISTS " + name + "WITH (FORCE)")
 	if err != nil {
 		return err
 	}
