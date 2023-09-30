@@ -34,21 +34,53 @@ func main() {
 		panic(err)
 	}
 	defer db.Close()
-	err = db.Ping()
-	if err != nil {
-		log.Println("couldn't ping the database:", err)
-	}
+	// err = db.Ping()
+	// if err != nil {
+	// 	log.Println("couldn't ping the database:", err)
+	// }
 	err = createPhoneNumbersTable(db)
 	if err != nil {
 		log.Println("couldn't create phone numbers table:", err)
 	}
-	id, err := insertPhone(db, "1234567890")
+	_, err = insertPhone(db, "1234567890")
 	if err != nil {
 		log.Println("unable to insert phone numberL", err)
 	}
-	log.Println("created phone number record:", id)
-}
+	_, err = insertPhone(db, "123 456 7891")
+	if err != nil {
+		log.Println("unable to insert phone numberL", err)
+	}
+	_, err = insertPhone(db, "(123) 456 7892")
+	if err != nil {
+		log.Println("unable to insert phone numberL", err)
+	}
+	_, err = insertPhone(db, "(123) 456-7893")
+	if err != nil {
+		log.Println("unable to insert phone numberL", err)
+	}
+	_, err = insertPhone(db, "123-456-7894")
+	if err != nil {
+		log.Println("unable to insert phone numberL", err)
+	}
+	_, err = insertPhone(db, "123-456-7890")
+	if err != nil {
+		log.Println("unable to insert phone numberL", err)
+	}
+	_, err = insertPhone(db, "1234567892")
+	if err != nil {
+		log.Println("unable to insert phone numberL", err)
+	}
+	_, err = insertPhone(db, "(123)456-7892")
+	if err != nil {
+		log.Println("unable to insert phone numberL", err)
+	}
 
+	// id, err := insertPhone(db, "1234567890")
+	// if err != nil {
+	// 	log.Println("unable to insert phone numberL", err)
+	// }
+	// log.Println("created phone number record:", id)
+}
 
 func insertPhone(db *sql.DB, phone string) (int, error) {
 	stmt := `INSERT INTO phone_numbers(value) VALUES($1) RETURNING id`
@@ -59,7 +91,6 @@ func insertPhone(db *sql.DB, phone string) (int, error) {
 		return -1, err
 	}
 	return id, nil
-
 }
 
 func createPhoneNumbersTable(db *sql.DB) error {
