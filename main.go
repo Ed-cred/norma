@@ -12,8 +12,8 @@ import (
 const (
 	host     = "localhost"
 	port     = 5432
-	user     = "postgres"
-	password = "rootuser"
+	user     = ""
+	password = ""
 	dbname   = "norma"
 )
 
@@ -69,7 +69,6 @@ func main() {
 		}
 	}
 }
-
 
 // iter version
 func normalize(phone string) string {
