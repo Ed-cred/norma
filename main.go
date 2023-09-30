@@ -19,17 +19,17 @@ const (
 
 func main() {
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s sslmode=disable", host, port, user, password)
-	db, err := sql.Open("postgres", psqlInfo)
-	if err != nil {
-		panic(err)
-	}
-	err = resetDB(db, dbname)
-	if err != nil {
-		panic(err)
-	}
-	db.Close()
+	// db, err := sql.Open("postgres", psqlInfo)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// err = resetDB(db, dbname)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// db.Close()
 	psqlInfo = fmt.Sprintf("%s dbname=%s", psqlInfo, dbname)
-	db, err = sql.Open("postgres", psqlInfo)
+	db, err := sql.Open("postgres", psqlInfo)
 	if err != nil {
 		panic(err)
 	}
@@ -38,6 +38,38 @@ func main() {
 	if err != nil {
 		log.Println("couldn't ping the database:", err)
 	}
+	err = createPhoneNumbersTable(db)
+	if err != nil {
+		log.Println("couldn't create phone numbers table:", err)
+	}
+	id, err := insertPhone(db, "1234567890")
+	if err != nil {
+		log.Println("unable to insert phone numberL", err)
+	}
+	log.Println("created phone number record:", id)
+}
+
+
+func insertPhone(db *sql.DB, phone string) (int, error) {
+	stmt := `INSERT INTO phone_numbers(value) VALUES($1) RETURNING id`
+	var id int
+	err := db.QueryRow(stmt, phone).Scan(&id)
+	if err != nil {
+		log.Println("unable to insert phone number into db:", err)
+		return -1, err
+	}
+	return id, nil
+
+}
+
+func createPhoneNumbersTable(db *sql.DB) error {
+	stmt := `
+		CREATE TABLE IF NOT EXISTS phone_numbers (
+			id SERIAL,
+			value  VARCHAR(255)
+		)`
+	_, err := db.Exec(stmt)
+	return err
 }
 
 func resetDB(db *sql.DB, name string) error {
